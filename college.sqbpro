@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="college.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="1741"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="groups" custom_title="0" dock_id="1" table="4,6:maingroups"/><dock_state state="000000ff00000000fd0000000100000002000002ac00000267fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000000002ac0000012e00ffffff000002790000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="groups" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="41"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">DROP TABLE IF EXISTS grades;
+DROP TABLE IF EXISTS students;
+DROP TABLE IF EXISTS subjects;
+DROP TABLE IF EXISTS groups;
+
+CREATE TABLE groups (
+id INTEGER PRIMARY KEY,
+name TEXT UNIQUE,
+curator TEXT
+);
+
+INSERT INTO groups (name, curator) VALUES
+('ІПЗ-11', 'Іваненко'),
+('ІПЗ-21', 'Петренко'),
+('ІПЗ-31', 'Сидоренко'),
+('ІПЗ-41', 'Коваленко'); 
+
+
+CREATE TABLE students (
+    id INTEGER PRIMARY KEY,
+    full_name TEXT,
+    group_id INTEGER REFERENCES groups(id),
+    course INTEGER CHECK (course BETWEEN 1 AND 4),
+    avg_grade REAL CHECK (avg_grade BETWEEN 0 AND 100),
+    is_active INTEGER CHECK (is_active IN (0, 1))
+);
+	
+	INSERT INTO students (full_name, group_id, course, avg_grade, is_active) VALUES
+('Ivanenko Ivan', 1, 1, 55, 1),
+('Petrenko Maria', 1, 2, 78, 1),
+('Shevchenko Andrii', 2, 3, 92, 1),
+('Kovalenko Marta', 2, 2, 85, 0),
+('Bondarenko Oleg', 3, 4, 67, 1),
+('Tkachenko Olena', 3, 3, 90, 1),
+('Moroz Ivan', 1, 1, 60, 1),
+('Khmarenko Natalia', 2, 2, 82, 0),
+('Fedorenko Sergii', 3, 3, 95, 1),
+('Petrova Anna', 1, 4, 58, 1),
+('Sidorov Mykola', 2, 1, 72, 1),
+('Antonenko Oksana', 3, 2, 88, 1),
+('Melnyk Pavlo', 1, 3, 91, 0),
+('Horbenko Yulia', 2, 4, 63, 1),
+('Lysenko Viktor', 3, 1, 77, 1),
+('Danylenko Iryna', 1, 2, 84, 1),
+('Rudenko Taras', 2, 3, 69, 1),
+('Savchenko Oksana', 3, 2, 93, 1),
+('Hnatiuk Bohdan', 1, 1, 47, 1),
+('Zhuk Olha', 2, 4, 88, 1);
+
+	
+	CREATE TABLE subjects (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    hours INTEGER
+);
+
+INSERT INTO subjects (name, hours) VALUES
+('Геймдизайн', 120),
+('Програмування', 150),
+('Бази даних', 100),
+('Філософія', 90),
+('Розробка ігор', 80),
+('Економіка', 110);
+
+
+CREATE TABLE grades (
+    id INTEGER PRIMARY KEY,
+    student_id INTEGER,
+    subject_id INTEGER,
+    grade INTEGER CHECK (grade BETWEEN 0 AND 100),
+    semester INTEGER CHECK (semester IN (1, 2)),
+
+    FOREIGN KEY (student_id) REFERENCES students(id),
+    FOREIGN KEY (subject_id) REFERENCES subjects(id)
+);
+
+INSERT INTO grades (student_id, subject_id, grade, semester) VALUES
+(1,1,80,1),(1,2,75,1),(1,3,70,2),
+(2,1,85,1),(2,2,90,2),(2,3,88,1),
+(3,1,95,1),(3,2,93,2),(3,4,89,1),
+(4,1,60,1),(4,3,65,2),
+(5,2,70,1),(5,5,75,2),
+(6,1,92,1),(6,2,94,2),
+(7,3,60,1),(7,4,62,2),
+(8,1,78,1),(8,2,80,2),
+(9,1,96,1),(9,6,97,2),
+(10,5,55,1),(10,2,60,2);
+
+--JOIN для отримання повної інформації
+SELECT s.id, s.full_name, g.name AS group_name, s.course, s.is_active
+FROM students s
+JOIN groups g ON s.group_id = g.id;
+
+SELECT s.full_name, g.name
+FROM students s
+JOIN groups g ON s.group_id = g.id
+WHERE s.course = 2
+ORDER BY g.name, s.full_name;
+
+SELECT s.full_name, sub.name, gr.semester, gr.grade
+FROM grades gr
+JOIN students s ON gr.student_id = s.id
+JOIN subjects sub ON gr.subject_id = sub.id
+ORDER BY s.full_name, sub.name;
+
+--Агрегація з GROUP BY по одній таблиці
+SELECT g.name, COUNT(s.id)
+FROM groups g
+LEFT JOIN students s ON g.id = s.group_id
+GROUP BY g.name;
+
+SELECT course, COUNT(*), AVG(avg_grade)
+FROM students
+GROUP BY course;
+
+SELECT g.name, MIN(s.avg_grade), MAX(s.avg_grade)
+FROM students s
+JOIN groups g ON s.group_id = g.id
+GROUP BY g.name;
+
+--GROUP BY + JOIN: агрегація по пов’язаних таблицях
+SELECT sub.name, COUNT(gr.id)
+FROM subjects sub
+LEFT JOIN grades gr ON sub.id = gr.subject_id
+GROUP BY sub.name;
+
+SELECT s.full_name, AVG(gr.grade)
+FROM students s
+JOIN grades gr ON s.id = gr.student_id
+GROUP BY s.full_name
+ORDER BY AVG(gr.grade) DESC;
+
+SELECT g.name, AVG(gr.grade)
+FROM groups g
+JOIN students s ON g.id = s.group_id
+JOIN grades gr ON s.id = gr.student_id
+GROUP BY g.name
+ORDER BY AVG(gr.grade) DESC;
+
+--HAVING: фільтрація агрегованих результатів
+SELECT g.name, COUNT(s.id)
+FROM groups g
+LEFT JOIN students s ON g.id = s.group_id
+GROUP BY g.name
+HAVING COUNT(s.id) &gt;= 6;
+
+SELECT sub.name, COUNT(gr.id)
+FROM subjects sub
+JOIN grades gr ON sub.id = gr.subject_id
+GROUP BY sub.name
+HAVING COUNT(gr.id) &gt;= 8;
+
+SELECT s.full_name, AVG(gr.grade), COUNT(gr.id)
+FROM students s
+JOIN grades gr ON s.id = gr.student_id
+GROUP BY s.full_name
+HAVING AVG(gr.grade) &gt;= 85 AND COUNT(gr.id) &gt;= 3;
+
+--LEFT JOIN: знаходження відсутніх зв’язків
+SELECT g.name
+FROM groups g
+LEFT JOIN students s ON g.id = s.group_id
+WHERE s.id IS NULL;
+
+SELECT s.full_name, g.name
+FROM students s
+JOIN groups g ON s.group_id = g.id
+LEFT JOIN grades gr ON s.id = gr.student_id
+WHERE gr.id IS NULL;
+
+SELECT sub.name
+FROM subjects sub
+LEFT JOIN grades gr ON sub.id = gr.subject_id
+WHERE gr.id IS NULL;</sql><current_tab id="0"/></tab_sql></sqlb_project>
